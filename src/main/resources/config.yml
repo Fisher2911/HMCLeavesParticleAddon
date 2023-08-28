@@ -1,0 +1,11 @@
+particles-per-chunk: 10
+send-particles-per-chunk: 5
+particle-send-tick-rate: 60
+leaf-particles:
+  "default_leaf_id_acacia_leaves": "BLUE_WOOL"
+  "default_leaf_id_oak_leaves": "BLUE_WOOL"
+  "default_leaf_id_jungle_leaves": "BLUE_WOOL"
+  "default_leaf_id_birch_leaves": "BLUE_WOOL"
+  "default_leaf_id_spruce_leaves": "BLUE_WOOL"
+  "default_leaf_id_azalea_leaves": "BLUE_WOOL"
+  "default_leaf_id_mangrove_leaves": "BLUE_WOOL"
