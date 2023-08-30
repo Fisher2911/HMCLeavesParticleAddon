@@ -84,20 +84,19 @@ public class ParticleChunkTracker {
 
     public void startTimer() {
         this.task = Bukkit.getScheduler().runTaskTimerAsynchronously(this.plugin, () -> {
-            for (final ChunkPosition chunkPosition : this.chunksWithParticles) {
+            this.chunksWithParticles.removeIf(chunkPosition -> {
                 final ChunkBlockCache cache = this.api.getChunkBlockCache(chunkPosition);
                 if (cache == null) {
-                    this.chunksWithParticles.remove(chunkPosition);
-                    continue;
+                    return true;
                 }
                 final Collection<Position> particlePositions = cache.getMetadata().get(LeavesMetadata.PARTICLE_POSITIONS);
                 final Map<UUID, Integer> players = cache.getMetadata().get(LeavesMetadata.PLAYERS);
                 if (players == null) {
-                    continue;
+                    return false;
                 }
                 if (particlePositions == null) {
                     this.addRandomParticlePositions(cache);
-                    continue;
+                    return false;
                 }
                 List<Position> positions = new ArrayList<>(particlePositions);
                 Collections.shuffle(positions);
@@ -135,7 +134,8 @@ public class ParticleChunkTracker {
                     }
                 }
                 playersToRemove.forEach(players::remove);
-            }
+                return false;
+            });
         }, this.config.getParticleSendTickRate(), this.config.getParticleSendTickRate());
     }
 

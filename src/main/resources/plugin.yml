@@ -1,5 +1,5 @@
 name: HMCLeavesParticleAddon
 main: io.github.fisher2911.hmcleavesparticleaddon.HMCLeavesParticleAddon
-version: 1.0.0
+version: 1.0.1-SNAPSHOT
 depend: [ HMCLeaves ]
 api-version: 1.18
