@@ -14,8 +14,11 @@ repositories {
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT")
-    compileOnly(files("libs/HMCLeaves-1.1.1.jar"))
+    compileOnly(files("libs/HMCLeaves-1.0.0.jar"))
 }
+
+java.sourceCompatibility = JavaVersion.toVersion(21)
+java.targetCompatibility = JavaVersion.toVersion(21)
 
 tasks {
 

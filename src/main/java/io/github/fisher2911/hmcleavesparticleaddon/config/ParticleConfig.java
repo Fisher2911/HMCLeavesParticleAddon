@@ -1,8 +1,8 @@
 package io.github.fisher2911.hmcleavesparticleaddon.config;
 
-import io.github.fisher2911.hmcleaves.packetevents.api.protocol.world.states.WrappedBlockState;
-import io.github.fisher2911.hmcleaves.packetevents.impl.util.SpigotConversionUtil;
+import com.hibiscusmc.hmcleaves.packetevents.protocol.world.states.WrappedBlockState;
 import io.github.fisher2911.hmcleavesparticleaddon.HMCLeavesParticleAddon;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 

@@ -1,25 +1,26 @@
 package io.github.fisher2911.hmcleavesparticleaddon.particle;
 
-import io.github.fisher2911.hmcleaves.api.HMCLeavesAPI;
-import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
-import io.github.fisher2911.hmcleaves.data.BlockData;
-import io.github.fisher2911.hmcleaves.data.LeafData;
-import io.github.fisher2911.hmcleaves.packetevents.api.PacketEvents;
-import io.github.fisher2911.hmcleaves.packetevents.api.protocol.particle.Particle;
-import io.github.fisher2911.hmcleaves.packetevents.api.protocol.particle.data.ParticleBlockStateData;
-import io.github.fisher2911.hmcleaves.packetevents.api.protocol.particle.type.ParticleTypes;
-import io.github.fisher2911.hmcleaves.packetevents.api.protocol.world.states.WrappedBlockState;
-import io.github.fisher2911.hmcleaves.packetevents.api.util.Vector3d;
-import io.github.fisher2911.hmcleaves.packetevents.api.util.Vector3f;
-import io.github.fisher2911.hmcleaves.packetevents.api.wrapper.play.server.WrapperPlayServerParticle;
-import io.github.fisher2911.hmcleaves.util.ChunkUtil;
-import io.github.fisher2911.hmcleaves.world.ChunkPosition;
-import io.github.fisher2911.hmcleaves.world.Position;
+import com.hibiscusmc.hmcleaves.api.HMCLeavesAPI;
+import com.hibiscusmc.hmcleaves.block.BlockData;
+import com.hibiscusmc.hmcleaves.block.BlockType;
+import com.hibiscusmc.hmcleaves.packetevents.PacketEvents;
+import com.hibiscusmc.hmcleaves.packetevents.protocol.particle.Particle;
+import com.hibiscusmc.hmcleaves.packetevents.protocol.particle.data.ParticleBlockStateData;
+import com.hibiscusmc.hmcleaves.packetevents.protocol.particle.type.ParticleTypes;
+import com.hibiscusmc.hmcleaves.packetevents.protocol.world.states.WrappedBlockState;
+import com.hibiscusmc.hmcleaves.packetevents.util.Vector3d;
+import com.hibiscusmc.hmcleaves.packetevents.util.Vector3f;
+import com.hibiscusmc.hmcleaves.packetevents.wrapper.play.server.WrapperPlayServerParticle;
+import com.hibiscusmc.hmcleaves.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.world.LeavesChunk;
+import com.hibiscusmc.hmcleaves.world.Position;
+import com.hibiscusmc.hmcleaves.world.PositionInChunk;
 import io.github.fisher2911.hmcleavesparticleaddon.HMCLeavesParticleAddon;
 import io.github.fisher2911.hmcleavesparticleaddon.config.ParticleConfig;
 import io.github.fisher2911.hmcleavesparticleaddon.metadata.LeavesMetadata;
 import io.github.fisher2911.hmcleavesparticleaddon.util.ChunkMetadataUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -30,17 +31,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 public class ParticleChunkTracker {
 
-    private static final List<Position> randomPositions = new ArrayList<>();
+    private static final List<RandomPosition> randomPositions = new ArrayList<>();
 
     static {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                randomPositions.add(Position.at(null, x, 0, z));
+                randomPositions.add(new RandomPosition(x, 0, z));
             }
         }
     }
@@ -59,8 +61,8 @@ public class ParticleChunkTracker {
     }
 
     public void movePlayer(Player player, ChunkPosition from, ChunkPosition to) {
-        final ChunkBlockCache fromCache = this.api.getChunkBlockCache(from);
-        if (fromCache == null) {
+        final LeavesChunk fromChunk = this.api.getLeavesChunk(from);
+        if (fromChunk == null) {
             this.chunksWithParticles.remove(from);
         }
         final Collection<ChunkPosition> removed = ChunkMetadataUtil.removePlayerFromChunk(this.api, from, player);
@@ -85,20 +87,20 @@ public class ParticleChunkTracker {
     public void startTimer() {
         this.task = Bukkit.getScheduler().runTaskTimerAsynchronously(this.plugin, () -> {
             this.chunksWithParticles.removeIf(chunkPosition -> {
-                final ChunkBlockCache cache = this.api.getChunkBlockCache(chunkPosition);
-                if (cache == null) {
+                final LeavesChunk leavesChunk = this.api.getLeavesChunk(chunkPosition);
+                if (leavesChunk == null) {
                     return true;
                 }
-                final Collection<Position> particlePositions = cache.getMetadata().get(LeavesMetadata.PARTICLE_POSITIONS);
-                final Map<UUID, Integer> players = cache.getMetadata().get(LeavesMetadata.PLAYERS);
+                final Collection<PositionInChunk> particlePositions = leavesChunk.getMetadata().get(LeavesMetadata.PARTICLE_POSITIONS);
+                final Map<UUID, Integer> players = leavesChunk.getMetadata().get(LeavesMetadata.PLAYERS);
                 if (players == null) {
                     return false;
                 }
                 if (particlePositions == null) {
-                    this.addRandomParticlePositions(cache);
+                    this.addRandomParticlePositions(leavesChunk);
                     return false;
                 }
-                List<Position> positions = new ArrayList<>(particlePositions);
+                List<PositionInChunk> positions = new ArrayList<>(particlePositions);
                 Collections.shuffle(positions);
                 positions = positions.subList(0, Math.min(this.config.getSendParticlesPerChunk(), positions.size()));
                 final int originalSize = particlePositions.size();
@@ -110,8 +112,8 @@ public class ParticleChunkTracker {
                         continue;
                     }
                     positions.forEach(position -> {
-                        final BlockData blockData = cache.getBlockDataAt(position);
-                        final WrappedBlockState blockState = this.config.getLeafParticle(blockData.id());
+                        final BlockData blockData = leavesChunk.get(position);
+                        final WrappedBlockState blockState = this.config.getLeafParticle(blockData.getId());
                         if (blockState == null) {
                             particlePositions.remove(position);
                             return;
@@ -121,7 +123,7 @@ public class ParticleChunkTracker {
                                 new WrapperPlayServerParticle(
                                         new Particle(ParticleTypes.FALLING_DUST, new ParticleBlockStateData(blockState)),
                                         true,
-                                        new Vector3d(position.x() + 0.5, position.y(), position.z() + 0.5),
+                                        new Vector3d(position.getX() + 0.5, position.getY(), position.getZ() + 0.5),
                                         Vector3f.zero(),
                                         1,
                                         1
@@ -129,8 +131,8 @@ public class ParticleChunkTracker {
                         );
                     });
                     if (originalSize != particlePositions.size()) {
-                        cache.getMetadata().remove(LeavesMetadata.PARTICLE_POSITIONS);
-                        this.addRandomParticlePositions(cache);
+                        leavesChunk.getMetadata().remove(LeavesMetadata.PARTICLE_POSITIONS);
+                        this.addRandomParticlePositions(leavesChunk);
                     }
                 }
                 playersToRemove.forEach(players::remove);
@@ -139,28 +141,52 @@ public class ParticleChunkTracker {
         }, this.config.getParticleSendTickRate(), this.config.getParticleSendTickRate());
     }
 
-    private void addRandomParticlePositions(ChunkBlockCache cache) {
+    private void addRandomParticlePositions(LeavesChunk leavesChunk) {
+        final World world = Bukkit.getWorld(leavesChunk.getWorld());
+        if (world == null) return;
+        final int minHeight = world.getMinHeight();
+        final int maxHeight = world.getMaxHeight();
         int totalParticles = this.config.getParticlesPerChunk();
-        final List<Position> random = new ArrayList<>(randomPositions);
+        final List<RandomPosition> random = new ArrayList<>(randomPositions);
         Collections.shuffle(random);
-        final List<Position> positions = new ArrayList<>();
-        for (final var entry : cache.getBlockDataMap().entrySet()) {
+        final List<PositionInChunk> positions = new ArrayList<>();
+        for (final var entry : leavesChunk.getBlocks().entrySet()) {
             if (totalParticles <= 0) break;
-            final Position position = entry.getKey();
+            final PositionInChunk position = entry.getKey();
             final BlockData blockData = entry.getValue();
-            if (this.config.getLeafParticle(blockData.id()) == null) continue;
-            if (!random.contains(Position.at(null, ChunkUtil.getCoordInChunk(position.x()), 0, ChunkUtil.getCoordInChunk(position.z())))) {
+            if (this.config.getLeafParticle(blockData.getId()) == null) continue;
+            if (!random.contains(new RandomPosition(position.getX(), 0, position.getZ()))) {
                 continue;
             }
-            Position particlePosition = position;
-            while (cache.getBlockDataAt(particlePosition.getRelative(BlockFace.DOWN)) instanceof LeafData) {
-                particlePosition = particlePosition.getRelative(BlockFace.DOWN);
+            PositionInChunk particlePosition = position;
+            PositionInChunk relativePosition = position.relative(BlockFace.DOWN, minHeight, maxHeight);
+            while (relativePosition != null) {
+                final BlockData relativeData = leavesChunk.get(relativePosition);
+                if (relativeData == null || relativeData.getBlockType() != BlockType.LEAVES) break;
+                particlePosition = relativePosition;
+                relativePosition = relativePosition.relative(BlockFace.DOWN, minHeight, maxHeight);
             }
             positions.add(particlePosition);
             totalParticles--;
         }
         Collections.shuffle(positions);
-        cache.getMetadata().set(LeavesMetadata.PARTICLE_POSITIONS, positions);
+        leavesChunk.getMetadata().set(LeavesMetadata.PARTICLE_POSITIONS, positions);
+    }
+
+    private record RandomPosition(int x, int y, int z) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RandomPosition that = (RandomPosition) o;
+            return x == that.x && y == that.y && z == that.z;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(x, y, z);
+        }
     }
 
 }

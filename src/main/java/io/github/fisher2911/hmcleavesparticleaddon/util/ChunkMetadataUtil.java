@@ -1,8 +1,8 @@
 package io.github.fisher2911.hmcleavesparticleaddon.util;
 
-import io.github.fisher2911.hmcleaves.api.HMCLeavesAPI;
-import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
-import io.github.fisher2911.hmcleaves.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.api.HMCLeavesAPI;
+import com.hibiscusmc.hmcleaves.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.world.LeavesChunk;
 import io.github.fisher2911.hmcleavesparticleaddon.metadata.LeavesMetadata;
 import org.bukkit.entity.Player;
 
@@ -22,15 +22,15 @@ public class ChunkMetadataUtil {
         final Collection<ChunkPosition> added = new HashSet<>();
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                final ChunkPosition chunkPosition = ChunkPosition.at(center.world(), x + center.x(), z + center.z());
-                final ChunkBlockCache cache = api.getChunkBlockCache(chunkPosition);
-                if (cache == null) {
+                final ChunkPosition chunkPosition = new ChunkPosition(center.getWorld(), x + center.getX(), z + center.getZ());
+                final LeavesChunk leavesChunk = api.getLeavesChunk(chunkPosition);
+                if (leavesChunk == null) {
                     continue;
                 }
-                Map<UUID, Integer> players = cache.getMetadata().get(LeavesMetadata.PLAYERS);
+                Map<UUID, Integer> players = leavesChunk.getMetadata().get(LeavesMetadata.PLAYERS);
                 if (players == null) {
                     players = new HashMap<>();
-                    cache.getMetadata().set(LeavesMetadata.PLAYERS, players);
+                    leavesChunk.getMetadata().set(LeavesMetadata.PLAYERS, players);
                 }
                 players.merge(player.getUniqueId(), 1, Integer::sum);
                 if (players.size() > 0) {
@@ -49,10 +49,10 @@ public class ChunkMetadataUtil {
         final Collection<ChunkPosition> removed = new HashSet<>();
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                final ChunkPosition chunkPosition = ChunkPosition.at(center.world(), x + center.x(), z + center.z());
-                final ChunkBlockCache cache = api.getChunkBlockCache(chunkPosition);
-                if (cache == null) continue;
-                Map<UUID, Integer> players = cache.getMetadata().get(LeavesMetadata.PLAYERS);
+                final ChunkPosition chunkPosition = new ChunkPosition(center.getWorld(), x + center.getX(), z + center.getZ());
+                final LeavesChunk leavesChunk = api.getLeavesChunk(chunkPosition);
+                if (leavesChunk == null) continue;
+                Map<UUID, Integer> players = leavesChunk.getMetadata().get(LeavesMetadata.PLAYERS);
                 if (players == null) continue;
                 players.merge(player.getUniqueId(), -1, Integer::sum);
                 if (players.get(player.getUniqueId()) <= 0) {
@@ -66,8 +66,8 @@ public class ChunkMetadataUtil {
         return removed;
     }
 
-    public static int countPlayersInChunk(ChunkBlockCache cache) {
-        Map<UUID, Integer> players = cache.getMetadata().get(LeavesMetadata.PLAYERS);
+    public static int countPlayersInChunk(LeavesChunk leavesChunk) {
+        Map<UUID, Integer> players = leavesChunk.getMetadata().get(LeavesMetadata.PLAYERS);
         if (players == null) return 0;
         return players.size();
     }

@@ -1,7 +1,8 @@
 package io.github.fisher2911.hmcleavesparticleaddon.listener;
 
-import io.github.fisher2911.hmcleaves.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleavesparticleaddon.particle.ParticleChunkTracker;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -19,7 +20,8 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        final ChunkPosition position = ChunkPosition.fromChunk(event.getPlayer().getLocation().getChunk());
+        final Chunk chunk = event.getPlayer().getLocation().getChunk();
+        final ChunkPosition position = this.getChunkPosition(chunk);
         this.tracker.addPlayer(event.getPlayer(), position);
     }
 
@@ -28,10 +30,13 @@ public class PlayerListener implements Listener {
         final Location to = event.getTo();
         final Location from = event.getFrom();
         if (to == null || from.getChunk().equals(to.getChunk())) return;
-        final ChunkPosition toPosition = ChunkPosition.fromChunk(to.getChunk());
-        final ChunkPosition fromPosition = ChunkPosition.fromChunk(from.getChunk());
+        final ChunkPosition toPosition = this.getChunkPosition(to.getChunk());
+        final ChunkPosition fromPosition = this.getChunkPosition(from.getChunk());
         this.tracker.movePlayer(event.getPlayer(), fromPosition, toPosition);
     }
 
+    private ChunkPosition getChunkPosition(Chunk chunk) {
+        return new ChunkPosition(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ());
+    }
 
 }
